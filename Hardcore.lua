@@ -25,12 +25,16 @@ Hardcore_Settings = {
 	level_list = {}
 }
 
+pulses = {}
+
 --[[ Local variables ]]--
-local debug = false
+local debug = true
 
 --addon communication
 local CTL = _G.ChatThrottleLib
 local COMM_NAME = "HardcoreAddon"
+local COMM_PULSE_FREQUENCY = 10
+local COMM_PULSE_CHECK_FREQUENCY = COMM_PULSE_FREQUENCY * 2
 local update_count = 0
 local COMM_UPDATE_BREAK = 4
 local COMM_DELAY = 5
@@ -38,7 +42,7 @@ local COMM_BATCH_SIZE = 4
 local COMM_COMMAND_DELIM = "$"
 local COMM_FIELD_DELIM = "|"
 local COMM_RECORD_DELIM = "^"
-local COMM_COMMANDS = {nil, "ADD", nil}
+local COMM_COMMANDS = {"PULSE", "ADD", nil}
 
 --stuff
 local PLAYER_NAME, _ = nil
@@ -113,7 +117,7 @@ end
 --[[ Events ]]--
 
 function Hardcore:PLAYER_LOGIN()
-	--fires on first loading
+	-- fires on first loading
 	self:RegisterEvent("PLAYER_UNGHOST")
 	self:RegisterEvent("PLAYER_DEAD")
 	self:RegisterEvent("CHAT_MSG_ADDON")
@@ -135,14 +139,20 @@ function Hardcore:PLAYER_LOGIN()
 		end
 	end
 
-	--cache player name
+	-- cache player name
 	PLAYER_NAME, _ = UnitName("player")
 
 	-- Show recording reminder
 	Hardcore:RecordReminder()
 
-	--minimap button
+	-- minimap button
 	Hardcore:initMinimapButton()
+
+  -- initiate pulse heartbeat
+  Hardcore:InitiatePulse()
+
+  -- initiate pulse heartbeat check
+  Hardcore:InitiatePulseCheck()
 end
 
 function Hardcore:PLAYER_ENTERING_WORLD()
@@ -319,6 +329,8 @@ function Hardcore:CHAT_MSG_ADDON(prefix, datastr, scope, sender)
 		-- Determine what command was sent
 		if command == COMM_COMMANDS[2] then
 			Hardcore:Add(data)
+    elseif command == COMM_COMMANDS[1] then
+      Hardcore:ReceivePulse(data, sender)
 		else
 			-- Hardcore:Debug("Unknown command :"..command)
 		end
@@ -774,6 +786,51 @@ function Hardcore:ToggleMinimapIcon()
 			icon:Hide("Hardcore")
 		end
 	end
+end
+
+function Hardcore:InitiatePulse()
+  -- Set send pulses ticker
+  C_Timer.NewTicker(COMM_PULSE_FREQUENCY, function()
+    if CTL then
+      local commMessage = COMM_COMMANDS[1]..COMM_COMMAND_DELIM
+      -- Hardcore:Debug('Sending pulse update to guild comm')
+      CTL:SendAddonMessage("BULK", COMM_NAME, commMessage, "GUILD")
+    end
+  end)
+end
+
+function Hardcore:InitiatePulseCheck()
+  C_Timer.NewTicker(COMM_PULSE_CHECK_FREQUENCY, function()
+    Hardcore:Debug('Checking pulses now')
+    for player, pulsetime in pairs(pulses) do
+      Hardcore:Debug(
+        'Player: '..player..' last pulse was: '
+        ..pulsetime..'. That was: '..time() - pulsetime..' ms ago'
+      )
+    end
+  end)
+end
+
+-- TODO: investigate colon operator here
+-- function Hardcore:SendPulse()
+--   if CTL then
+--     local commMessage = COMM_COMMANDS[1]..COMM_COMMAND_DELIM
+--     Hardcore:Debug('Sending pulse update to guild comm')
+--     CTL:SendAddonMessage("BULK", COMM_NAME, commMessage, "GUILD")
+--   end
+-- end
+
+function Hardcore:ReceivePulse(data, sender)
+  local longName, serverName = UnitFullName("player")
+  local FULL_PLAYER_NAME = longName..'-'..serverName
+
+  -- Hardcore:Debug('Received pulse from: '..sender)
+
+  if sender == FULL_PLAYER_NAME then
+    return
+  end
+
+  pulses[sender] = time()
 end
 
 
