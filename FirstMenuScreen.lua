@@ -82,10 +82,10 @@ function ShowFirstMenu(_hardcore_character, _hardcore_settings, _failure_functio
 				.. '+ "I have read the rules (#hardcore-rules, Discord)"\n\n'
 				.. '+ "I have read the FAQ (#faq, Discord)"\n\n'
 				.. '+ "I understand that disconnect appeal approval requires video of both pre-disconnect activity and the reconnect/login process,"\n\n'
-				.. '+ "I accept responsibility for /reloading regularly and logging out cleanly to protect my data,"\n\n'
 				.. '+ "I understand that buffing a PvP-flagged player will cause me to become PvP-flagged, and I may die,"\n\n'
 				.. '+ "I understand that my presence in official guilds is subject to the Discord and Guild Rules (#getting-started, Discord)"\n\n'
 				.. '+ "I understand that non-Classic HC affiliated guilds do not follow our standards, and thus are at your own risk."\n\n'
+				.. '+ "I accept responsibility for /reloading regularly, logging out cleanly and making backups to protect my data (#addon-support, Discord),"\n\n'
 				.. '+ "I understand that playing on multiple computers requires copying files as described in the FAQ (#faq, Discord)."\n\n'
 				.. ""
 		)
