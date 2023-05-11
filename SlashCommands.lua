@@ -122,26 +122,7 @@ end
 local function SlashCmd_AppealPassiveAchievementCode(args)
 	local code = nil
 	local ach_num = nil
-	for substring in args:gmatch("%S+") do
-		if code == nil then
-		code = substring
-		else
-		ach_num = substring
-		end
-	end
-	if code == nil then
-		Hardcore:Print("Wrong syntax: Missing first argument")
-		return
-	end
-	if ach_num == nil or _G.ach then
-		Hardcore:Print("Wrong syntax: Missing second argument")
-		return
-	end
-
-	if _G.passive_achievements[_G.id_pa[ach_num]] == nil then
-		Hardcore:Print("Wrong syntax: achievement isn't found for " .. ach_num)
-		return
-	end
+	code, ach_num = extract_arguments(args)
 
 	if tostring(short_crypto_hash(ach_num)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
 		for i,v in ipairs(Hardcore_Character.passive_achievements) do
@@ -158,24 +139,7 @@ end
 
 local function SlashCmd_AppealTradePartners(args)
 	local code = nil
-	local ach_num = nil
-	local iters = 0
-	for substring in args:gmatch("%S+") do
-		if iters == 0 then
-		code = substring
-		elseif iters == 1 then
-		ach_num = substring
-		end
-		iters = iters + 1
-	end
-	if code == nil then
-		Hardcore:Print("Wrong syntax: Missing first argument")
-		return
-	end
-	if ach_num == nil or _G.ach then
-		Hardcore:Print("Wrong syntax: Missing second argument")
-		return
-	end
+	code, _ = extract_arguments(args)
 
 	if tostring(short_crypto_hash(-1)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
 		Hardcore_Character.trade_partners = {}
@@ -188,23 +152,7 @@ end
 local function SlashCmd_AppealDuoTrio(args)
 	local code = nil
 	local ach_num = nil
-	local iters = 0
-	for substring in args:gmatch("%S+") do
-	  if iters == 0 then
-		code = substring
-	  elseif iters == 1 then
-		ach_num = substring
-	  end
-	  iters = iters + 1
-	end
-	if code == nil then
-		Hardcore:Print("Wrong syntax: Missing first argument")
-		return
-	end
-	if ach_num == nil or _G.ach then
-		Hardcore:Print("Wrong syntax: Missing second argument")
-		return
-	end
+	code, ach_num = extract_arguments(args)
 
 	if tostring(short_crypto_hash(-1)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
 	  if Hardcore_Character.party_mode == "Failed Duo" then
@@ -217,6 +165,34 @@ local function SlashCmd_AppealDuoTrio(args)
 	  end
 	else
 	  Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(-1) .. " " .. code)
+	end
+end
+
+local function SlashCmd_AppealDuoPartner(args)
+	local code = nil
+	local partner = nil
+	code, partner = extract_arguments(args)
+
+	if tostring(short_crypto_hash(partner)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
+		Hardcore_Character.team[1] = partner
+		Hardcore:Print("Appealed Duo partner to: " .. partner)
+	  end
+	else
+	  Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(partner) .. " " .. code)
+	end
+end
+
+local function SlashCmd_AppealTrioPartner(args)
+	local code = nil
+	local partner = nil
+	code, partner = extract_arguments(args)
+
+	if tostring(short_crypto_hash(partner)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
+		Hardcore_Character.team[2] = partner
+		Hardcore:Print("Appealed Trio partner to: " .. partner)
+	  end
+	else
+	  Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(partner) .. " " .. code)
 	end
 end
 
@@ -355,18 +331,6 @@ local function SlashHandler(msg, editbox)
 	elseif cmd == "debug" then
 		local debug = Hardcore:ToggleDebug()
 		Hardcore:Print("Debugging set to " .. tostring(debug))
-		-- expand the mobs to allow for anti-grief testing in elwynn
-		GRIEFING_MOBS = {
-			["Anvilrage Overseer"] = 1,
-			["Infernal"] = 1,
-			["Teremus the Devourer"] = 1,
-			["Volchan"] = 1,
-			["Twilight Fire Guard"] = 1,
-			["Hakkari Oracle"] = 1,
-			["Forest Spider"] = 1,
-			["Mangy Wolf"] = 1,
-			["Searing Ghoul"] = 1,
-		}
 
 	elseif cmd == "alerts" then
 		Hardcore_Toggle_Alerts()
@@ -379,7 +343,7 @@ local function SlashHandler(msg, editbox)
 	elseif cmd == "monitor" then
 		Hardcore_Settings.monitor = not Hardcore_Settings.monitor
 		if Hardcore_Settings.monitor then
-			Hardcore:Monitor("Monitoring malicious users enabled.")
+			Hardcore:Print("Monitoring malicious users enabled.")
 		else
 			Hardcore:Print("Monitoring malicious users disabled.")
 		end
@@ -393,7 +357,8 @@ local function SlashHandler(msg, editbox)
 			for i, achievement in ipairs(Hardcore_Character.achievements) do
 				if achievement == achievement_to_quit then
 					Hardcore:Print("Successfuly quit " .. achievement .. ".")
-					failure_function_executor.Fail(achievement)
+					--failure_function_executor.Fail(achievement)
+					Hardcore:GetFailFunction().Fail(achievement)
 				end
 			end
 		end
@@ -473,6 +438,12 @@ local function SlashHandler(msg, editbox)
 
 	elseif cmd == "AppealDuoTrio" then
 		SlashCmd_AppealDuoTrio(args)
+	
+	elseif cmd == "AppealDuoPartner" then
+		SlashCmd_AppealDuoPartner(args)
+	
+	elseif cmd == "AppealTrioPartner" then
+		SlashCmd_AppealTrioPartner(args)
 	
 	elseif cmd == "AppealDeath" then
 		SlashCmd_AppealDeath(args)

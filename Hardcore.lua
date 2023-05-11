@@ -3143,6 +3143,10 @@ function Hardcore:ToggleDebug( )
 	return debug
 end
 
+function Hardcore:GetFailFunction()
+	return failure_function_executor
+end
+
 local ATTRIBUTE_SEPARATOR = "_"
 function Hardcore:GenerateVerificationString()
 	local version = GetAddOnMetadata("Hardcore", "Version")
