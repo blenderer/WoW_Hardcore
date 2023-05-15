@@ -11,11 +11,11 @@ local function extract_arguments(args)
 	end
 	if first == nil then
 		Hardcore:Print("Wrong syntax: Missing first argument")
-		return
+		return first, second
 	end
-	if second == nil or _G.ach then
+	if second == nil then
 		Hardcore:Print("Wrong syntax: Missing second argument")
-		return
+		return first, second
 	end
 
 	-- return both first and second arguments
@@ -23,15 +23,22 @@ local function extract_arguments(args)
 end
 
 local function short_crypto_hash(str)
+	Hardcore:Debug("short_crypto_hash:", str)
 	local hash = 5381
 	for i = 1, #str do
 		hash = hash * 33 + str:byte( i )
+		Hardcore:Debug("sch: ", i, str:byte( i ), hash)
 	end
+
+	Hardcore:Debug("short_crypto_hash:", "DONE", hash)
 	return hash
 end
 
 local function get_short_code(suffix)
-	local str = UnitName("player"):sub(1,5) .. UnitLevel("player") .. suffix
+	-- print debug information using Hardcore:Debug  2.2944241830353e+14 
+	Hardcore:Debug("get_short_code:", suffix)
+	local str = UnitName("player"):sub(1,5) .. UnitLevel("player") .. tostring(suffix)
+	Hardcore:Debug("get_short_code:", str)
 	return short_crypto_hash(str)
 end
 
@@ -41,7 +48,7 @@ local function long_cryto_hash( str )
 	local a = 0
 	local b = 0
 	local dictionary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 /:"
-	
+
 	for i = 1, #str do
 		x, y = string.find( dictionary, str:sub(i,i), 1, true )
 		if x == nil then
@@ -60,112 +67,221 @@ local function get_long_code( date_str )
 	return long_cryto_hash(str)
 end
 
-local function SlashCmd_Deprecated()	
+local function SlashCmd_Deprecated()
 	Hardcore:Print("This command is deprecated.")
 end
 
 local function SlashCmd_AppealAchievementCode(args)
 	local code = nil
-	local ach_num = nil
-	code, ach_num = extract_arguments(args)
+	local achievement_id = nil
+	code, achievement_id = extract_arguments(args)
 
-	if _G.achievements[_G.id_a[ach_num]] == nil then
-		Hardcore:Print("Wrong syntax: achievement isn't found for " .. ach_num)
+	-- code and achievement_id are each either string or nil at this point
+
+	-- reject nil cases
+	if code == nil or achievement_id == nil then
+		-- code or achievement number is missing, bail
+		Hardcore:Print("Wrong syntax: Missing code or achievement id")
 		return
 	end
 
-	if tostring(short_crypto_hash(ach_num)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
-		for i,v in ipairs(Hardcore_Character.achievements) do
-			if v == _G.id_a[ach_num] then
-				return
-			end
-		end
+	-- code and achievement_id are both strings at this point
 
-		local function OnOkayClick()				
-			table.insert(Hardcore_Character.achievements, _G.achievements[_G.id_a[ach_num]].name)
-			_G.achievements[_G.id_a[ach_num]]:Register(failure_function_executor, Hardcore_Character)
-			Hardcore:Print("Appealed " .. _G.achievements[_G.id_a[ach_num]].name .. " challenge!")
-			StaticPopup_Hide("ConfirmAchievementAppeal")
-		end
-	
-		local function OnCancelClick()
-			Hardcore:Print("Opting out of Appeal for Achievement: " .. _G.achievements[_G.id_a[ach_num]].name)
-			StaticPopup_Hide("ConfirmAchievementAppeal")
-		end
+	local calculated_code = get_short_code(achievement_id) -- number
+	local code_as_number = tonumber(code) -- number
 
-		local text = "You have requested to appeal the achievement '".._G.achievements[_G.id_a[ach_num]].name.."'."
+	Hardcore:Debug("Achievement: Given code " .. code .. ", which as a number is " .. code_as_number)
 
-		if ach_num == "47" then -- Insane in the Membrane
-			text = text .. "  This achievement will flag you for PvP, and you may be killed."
-		end
 
-		text = text .. "  Do you want to proceed?"
-	
-		StaticPopupDialogs["ConfirmAchievementAppeal"] = {
-			text = text,
-			button1 = OKAY,
-			button2 = CANCEL,
-			OnAccept = OnOkayClick,
-			OnCancel = OnCancelClick,
-			timeout = 0,
-			whileDead = true,
-			hideOnEscape = true,
-		}
-		
-		local dialog = StaticPopup_Show("ConfirmAchievementAppeal")
-
-	else
-		Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(ach_num) .. " " .. code)
+	---@diagnostic disable-next-line: undefined-field
+	if _G.achievements[_G.id_a[achievement_id]] == nil then
+		-- achievement id is invalid, bail
+		Hardcore:Print("Wrong syntax: Unknown achievement id: " .. achievement_id)
+		return
 	end
+
+	local achievement = _G.achievements[_G.id_a[achievement_id]]
+	Hardcore:Debug("FOO calculated_code: " .. calculated_code .. " given " .. code_as_number)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
+	end
+
+	for i,v in ipairs(Hardcore_Character.achievements) do
+		if v == _G.id_a[achievement_id] then
+			Hardcore:Print("This achievement is already active: " .. achievement.name)
+			return
+		end
+	end
+
+	local function OnOkayClick()
+		table.insert(Hardcore_Character.achievements, achievement.name)
+		achievement:Register(Hardcore:GetFailFunction(), Hardcore_Character)
+		Hardcore:Print("Achievement appealed: " .. achievement.name)
+		Hardcore:Print("Please /reload immediately to save your data.")
+		-- TODO: Add appeal to database
+		StaticPopup_Hide("ConfirmAchievementAppeal")
+	end
+
+	local function OnCancelClick()
+		Hardcore:Print("Achievement appeal cancelled - Opting out of: " .. achievement.name)
+		StaticPopup_Hide("ConfirmAchievementAppeal")
+	end
+
+	local text = "You have requested to appeal the achievement '".. achievement.name .."'."
+
+	if achievement_id == "47" then -- Insane in the Membrane
+		text = text .. "  This achievement will flag you for PvP, and you may be unappealably killed."
+	end
+
+	text = text .. "  Do you want to proceed?"
+
+	StaticPopupDialogs["ConfirmAchievementAppeal"] = {
+		text = text,
+		button1 = OKAY,
+		button2 = CANCEL,
+		OnAccept = OnOkayClick,
+		OnCancel = OnCancelClick,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+	}
+
+	local dialog = StaticPopup_Show("ConfirmAchievementAppeal")
+
+
 end
 
 local function SlashCmd_AppealPassiveAchievementCode(args)
 	local code = nil
-	local ach_num = nil
-	code, ach_num = extract_arguments(args)
+	local achievement_id = nil
+	code, achievement_id = extract_arguments(args)
 
-	if tostring(short_crypto_hash(ach_num)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
-		for i,v in ipairs(Hardcore_Character.passive_achievements) do
-			if v == _G.id_pa[ach_num] then
-				return
-			end
-		end
-		table.insert(Hardcore_Character.passive_achievements, _G.passive_achievements[_G.id_pa[ach_num]].name)
-		Hardcore:Print("Appealed " .. _G.passive_achievements[_G.id_pa[ach_num]].name .. " challenge!")
-	else
-		Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(ach_num) .. " " .. code)
+	-- code and achievement_id are each either string or nil at this point
+
+	-- reject nil cases
+	if code == nil or achievement_id == nil then
+		-- code or achievement number is missing, bail
+		Hardcore:Print("Wrong syntax: Missing code or achievement id")
+		return
 	end
+
+	-- code and achievement_id are both strings at this point
+
+	local calculated_code = get_short_code(achievement_id) -- number
+	local code_as_number = tonumber(code) -- number
+
+	
+
+	---@diagnostic disable-next-line: undefined-field
+	if _G.passive_achievements[_G.id_pa[achievement_id]] == nil then
+		-- achievement id is invalid, bail
+		Hardcore:Print("Wrong syntax: Unknown passive achievement id: " .. achievement_id)
+		return
+	end
+
+	local achievement = _G.passive_achievements[_G.id_pa[achievement_id]]
+	Hardcore:Debug("BAR calculated_code: " .. calculated_code .. " given " .. code_as_number)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
+	end
+
+	for i,v in ipairs(Hardcore_Character.passive_achievements) do
+		if v == _G.id_pa[achievement_id] then
+			Hardcore:Print("This achievement is already active: " .. achievement.name)
+			return
+		end
+	end
+
+	table.insert(Hardcore_Character.passive_achievements, achievement.name)
+	Hardcore:Print("Achievement appealed: " .. achievement.name)
+	Hardcore:Print("Please /reload immediately to save your data.")
+	-- TODO: Add appeal to database
 end
 
 local function SlashCmd_AppealTradePartners(args)
 	local code = nil
 	code, _ = extract_arguments(args)
 
-	if tostring(short_crypto_hash(-1)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
-		Hardcore_Character.trade_partners = {}
-		Hardcore:Print("Appealed Trade partners")
-	else
-		Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(-1) .. " " .. code)
+	-- code is either a string or nil at this point, and we do not care about the second arg.
+
+	-- reject nil case
+	if code == nil then
+		-- code is missing, bail
+		Hardcore:Print("Wrong syntax: Missing code")
+		return
 	end
+
+	-- code is a string at this point
+
+	-- -1 is used to represent 'field not used' in the short code
+	local calculated_code = get_short_code("-1") -- number
+	local code_as_number = tonumber(code) -- number
+
+	Hardcore:Debug("Trade Partner: Given code " .. code .. ", which as a number is " .. code_as_number)
+	Hardcore:Debug("calculated_code: " .. calculated_code)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
+	end
+
+	Hardcore_Character.trade_partners = {}
+	Hardcore:Print("Appealed Trade partners")
+	Hardcore:Print("Please /reload immediately to save your data.")
+	-- TODO: Add appeal to database
 end
 
 local function SlashCmd_AppealDuoTrio(args)
 	local code = nil
-	local ach_num = nil
-	code, ach_num = extract_arguments(args)
+	code, _ = extract_arguments(args)
 
-	if tostring(short_crypto_hash(-1)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
-	  if Hardcore_Character.party_mode == "Failed Duo" then
-		  Hardcore_Character.party_mode = "Duo"
-		  Hardcore:Print("Appealed Duo status")
-	  end
-	  if Hardcore_Character.party_mode == "Failed Trio" then
-		  Hardcore_Character.party_mode = "Trio"
-		  Hardcore:Print("Appealed Trio status")
-	  end
-	else
-	  Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(-1) .. " " .. code)
+	-- reject nil case
+	if code == nil then
+		-- code is missing, bail
+		Hardcore:Print("Wrong syntax: Missing code")
+		return
 	end
+
+	-- code is a string at this point
+
+	-- -1 is used to represent 'field not used' in the short code
+	local calculated_code = get_short_code("-1") -- number
+	local code_as_number = tonumber(code) -- number
+
+	Hardcore:Debug("Duo/Trio Appeal: Given code " .. code .. ", which as a number is " .. code_as_number)
+	Hardcore:Debug("calculated_code: " .. calculated_code)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
+	end
+
+	if Hardcore_Character.party_mode == "Failed Duo" then
+		Hardcore_Character.party_mode = "Duo"
+		Hardcore:Print("Appealed Duo status")
+		Hardcore:Print("Please /reload immediately to save your data.")
+		-- TODO: Add appeal to database
+	elseif Hardcore_Character.party_mode == "Failed Trio" then
+		Hardcore_Character.party_mode = "Trio"
+		Hardcore:Print("Appealed Trio status")
+		Hardcore:Print("Please /reload immediately to save your data.")
+		-- TODO: Add appeal to database
+	else
+		Hardcore:Print("You are not in a failed duo or trio.")
+	end
+
 end
 
 local function SlashCmd_AppealDuoPartner(args)
@@ -173,13 +289,38 @@ local function SlashCmd_AppealDuoPartner(args)
 	local partner = nil
 	code, partner = extract_arguments(args)
 
-	if tostring(short_crypto_hash(partner)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
-		Hardcore_Character.team[1] = partner
-		Hardcore:Print("Appealed Duo partner to: " .. partner)
-	  end
-	else
-	  Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(partner) .. " " .. code)
+	-- code and partner are each either string or nil at this point
+
+	-- reject nil cases
+	if code == nil or partner == nil then
+		-- code or partner is missing, bail
+		Hardcore:Print("Wrong syntax: Missing code or partner")
+		return
 	end
+
+	-- code and partner are both strings at this point
+
+	local calculated_code = get_short_code(partner:sub(1,3)) -- number
+	local code_as_number = tonumber(code) -- number
+
+	Hardcore:Debug("DuoPartner: Given code " .. code .. ", which as a number is " .. code_as_number)
+	Hardcore:Debug("calculated_code: " .. calculated_code)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
+	end
+
+	if Hardcore_Character.party_mode == "Solo" then
+		Hardcore_Character.party_mode = "Duo"
+		Hardcore:Print("Appealed Duo status")
+	end
+	Hardcore_Character.team[1] = partner
+	Hardcore:Print("Appealed Duo partner to: " .. partner)
+	Hardcore:Print("Please /reload immediately to save your data.")
+
 end
 
 local function SlashCmd_AppealTrioPartner(args)
@@ -187,28 +328,37 @@ local function SlashCmd_AppealTrioPartner(args)
 	local partner = nil
 	code, partner = extract_arguments(args)
 
-	if tostring(short_crypto_hash(partner)):sub(1,10) == tostring(tonumber(code)):sub(1,10) then
-		Hardcore_Character.team[2] = partner
-		Hardcore:Print("Appealed Trio partner to: " .. partner)
-	  end
-	else
-	  Hardcore:Print("Incorrect code. Double check with a moderator." .. short_crypto_hash(partner) .. " " .. code)
+	-- code and partner are each either string or nil at this point
+
+	-- reject nil cases
+	if code == nil or partner == nil then
+		-- code or partner is missing, bail
+		Hardcore:Print("Wrong syntax: Missing code or partner")
+		return
 	end
-end
 
-local function SlashCmd_ShowAppeals( args )
+	-- code and partner are both strings at this point
 
-	-- DEBUG CODE:
-	-- Allow the player to see appeals
-	-- This is a debug function, and should be removed before release
+	local calculated_code = get_short_code(partner:sub(1,3)) -- number
+	local code_as_number = tonumber(code) -- number
 
-	local usage = "Usage: /hc ShowAppeals"
-	
-	-- iterate through Hardcore_Character.appeals and print the date of each death
-	Hardcore:Print("Appeals:")
-	for i,v in ipairs(Hardcore_Character.appeals) do
-		Hardcore:Print( i .. ": death - \"" .. v.death .. "\"" )
+	Hardcore:Debug("TrioPartner: Given code " .. code .. ", which as a number is " .. code_as_number)
+	Hardcore:Debug("calculated_code: " .. calculated_code)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
 	end
+
+	if Hardcore_Character.party_mode == "Duo" then
+		Hardcore_Character.party_mode = "Trio"
+		Hardcore:Print("Appealed Trio status")
+	end
+	Hardcore_Character.team[2] = partner
+	Hardcore:Print("Appealed Trio partner to: " .. partner)
+	Hardcore:Print("Please /reload immediately to save your data.")
 
 end
 
@@ -219,11 +369,29 @@ local function SlashCmd_ShowDeaths( args )
 	-- This is a debug function, and should be removed before release
 
 	local usage = "Usage: /hc ShowDeaths"
-	
+
 	-- iterate through Hardcore_Character.deaths and print the date of each death
 	Hardcore:Print("Deaths:")
 	for i,v in ipairs(Hardcore_Character.deaths) do
 		Hardcore:Print( i .. ": \"" .. v.player_dead_trigger .. "\"" )
+	end
+
+end
+
+local function SlashCmd_ShowAppeals( args )
+
+	-- DEBUG CODE:
+	-- Allow the player to see the appeal data
+
+	local usage = "Usage: /hc ShowAppeals"
+
+	-- iterate through Hardcore_Character.deaths and print the date of each death
+	Hardcore:Print("Appeals:")
+	for i,v in ipairs(Hardcore_Character.appeals) do
+		Hardcore:Print(i) -- entry
+		for j,w in pairs(v) do
+			Hardcore:Print("  \"" .. j .. "\": \"" .. w .. "\"")
+		end
 	end
 
 end
@@ -234,78 +402,77 @@ local function SlashCmd_AppealDeath( args )
 	local code = nil
 	local quoted_args = {}
 
-	-- Check and retrieve code and command
+	-- Check and retrieve code
 	for substring in args:gmatch("%S+") do
 		if code == nil then
 			code = substring
 		end
 	end
-	if code == nil then
-		Hardcore:Print("Wrong syntax: Missing <code> argument")
-		Hardcore:Print(usage)
-		return
-	end
-	
+
 	-- Retrieve arguments in quotes, chuck away the code and command and space between
 	for arg in args:gmatch('[^\"]+') do
 		table.insert( quoted_args, arg )
 	end
-	table.remove( quoted_args, 1 )		-- Remove the code and command
-	table.remove( quoted_args, 2 )		-- Remove the empty space		
+	table.remove( quoted_args, 1 )		-- Remove the code
+
+	-- reject nil case
+	if code == nil then
+		Hardcore:Print("Wrong syntax: Missing code")
+		Hardcore:Print(usage)
+		return
+	end
 
 	if #quoted_args < 1 then
 		Hardcore:Print("Wrong syntax: supply date string in quotes" )
 		Hardcore:Print(usage)
 		return
-	else
-		-- Look for the death with matching date
-		local death_date = quoted_args[1]
-		local death_found = false
-		local index = 0
-		for i,v in ipairs( Hardcore_Character.deaths ) do
-			if Hardcore_Character.deaths[ i ].player_dead_trigger == death_date then
-				death_found = true
-				index = i
-			end
-		end
-		
-		-- If a matching death is found, proceed
-		if death_found == true then
-		
-			-- Check if the hash code is correct
-			local appeal_code = get_long_code( Hardcore_Character.deaths[ index ].player_dead_trigger )
+	end
 
-			-- DEBUG CODE
-			-- Hardcore:Print("Appeal code: " .. appeal_code)
-			
-			-- if the triplet doesn't match, refuse the appeal code
-			if tonumber( code ) ~= tonumber( appeal_code ) then
-				Hardcore:Print("Incorrect code. Double check with a moderator/developer." )
-				return
-			end
-
-			-- Check if the appeal already exists in the table
-			if Hardcore_Character.appeals then
-				for i,v in ipairs( Hardcore_Character.appeals ) do
-					if Hardcore_Character.appeals[ i ].death == Hardcore_Character.deaths[ index ].player_dead_trigger then
-						Hardcore:Print("Appeal already exists for " .. Hardcore_Character.deaths[ index ].player_dead_trigger)
-						return
-					end
-				end
-			end
-			
-			-- Appeal the death
-			Hardcore:Print("Appealed death on " .. Hardcore_Character.deaths[ index ].player_dead_trigger)
-			if not Hardcore_Character.appeals then
-				Hardcore_Character.appeals = {}
-			end
-			table.insert( Hardcore_Character.appeals, {["death"] = Hardcore_Character.deaths[ index ].player_dead_trigger} )
-			return
-		else
-			Hardcore:Print( "Death on " .. quoted_args[1] .. " not found!" )
-			return
+	-- Look for the death with matching date
+	local death_date = quoted_args[1]
+	local death_found = false
+	local index = 0
+	for i,v in ipairs( Hardcore_Character.deaths ) do
+		if Hardcore_Character.deaths[ i ].player_dead_trigger == death_date then
+			death_found = true
+			break
 		end
 	end
+
+	if death_found  == false then
+		Hardcore:Print( "Death on " .. quoted_args[1] .. " not found!" )
+		return
+	end
+
+	local calculated_code = get_long_code( death_date )
+	local code_as_number = tonumber( code )
+
+	Hardcore:Debug("Death: Given code " .. code .. ", which as a number is " .. code_as_number)
+	Hardcore:Debug("calculated_code: " .. calculated_code)
+
+	if calculated_code ~= code_as_number then
+		-- code is incorrect, bail
+		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
+		Hardcore:Debug("Expected:" .. calculated_code)
+		return
+	end
+
+	-- Check if the appeal already exists in the table
+	if Hardcore_Character.appeals then
+		for i,v in ipairs( Hardcore_Character.appeals ) do
+			if Hardcore_Character.appeals[ i ].death == death_date then
+				Hardcore:Print("Appeal already exists for " .. death_date)
+				return
+			end
+		end
+	end
+
+	-- Appeal the death
+	Hardcore:Print("Appealed death on " .. death_date)
+	if not Hardcore_Character.appeals then
+		Hardcore_Character.appeals = {}
+	end
+	table.insert( Hardcore_Character.appeals, {["death"] = death_date} )
 end
 
 local function SlashHandler(msg, editbox)
@@ -353,12 +520,14 @@ local function SlashHandler(msg, editbox)
 		for substring in args:gmatch("%S+") do
 			achievement_to_quit = substring
 		end
+
+		---@diagnostic disable-next-line: undefined-field
 		if _G.achievements ~= nil and _G.achievements[achievement_to_quit] ~= nil then
 			for i, achievement in ipairs(Hardcore_Character.achievements) do
 				if achievement == achievement_to_quit then
-					Hardcore:Print("Successfuly quit " .. achievement .. ".")
-					--failure_function_executor.Fail(achievement)
+					Hardcore:Print("You are no longer tracking: " .. achievement)
 					Hardcore:GetFailFunction().Fail(achievement)
+					return
 				end
 			end
 		end
@@ -392,59 +561,29 @@ local function SlashHandler(msg, editbox)
 		end
 		Hardcore:SetGlobalPronoun(gpronoun_option)
 
-	-- Alert debug code
-	elseif cmd == "alert" and debug == true then
-		local head, tail = "", {}
-		for substring in args:gmatch("%S+") do
-			if head == "" then
-				head = substring
-			else
-				table.insert(tail, substring)
-			end
-		end
-
-		local style, message = head, table.concat(tail, " ")
-		local styleConfig
-		if ALERT_STYLES[style] then
-			styleConfig = ALERT_STYLES[style]
-		else
-			styleConfig = ALERT_STYLES.hc_red
-		end
-
-		Hardcore:ShowAlertFrame(styleConfig, message)
-	
 	-- appeal slash commands
 
-	elseif cmd == "ExpectAchievementAppeal" then
-		SlashCmd_Deprecated()
-
-	elseif cmd == "AppealAchievement" then
-		SlashCmd_Deprecated()
-		
 	elseif cmd == "AppealAchievementCode" then
 		SlashCmd_AppealAchievementCode(args)
 
-	elseif cmd == "AppealDungeonCode" then
-		DungeonTrackerHandleAppealCode(args)
-
 	elseif cmd == "AppealPassiveAchievementCode" then
 		SlashCmd_AppealPassiveAchievementCode(args)
-		
-	elseif cmd == "SetRank" then
-		SlashCmd_Deprecated()
+
+	elseif cmd == "AppealDungeonCode" then
+		DungeonTrackerHandleAppealCode(args)
 
 	elseif cmd == "AppealTradePartners" then
 		SlashCmd_AppealTradePartners(args)
 
 	elseif cmd == "AppealDuoTrio" then
 		SlashCmd_AppealDuoTrio(args)
-	
+
 	elseif cmd == "AppealDuoPartner" then
 		SlashCmd_AppealDuoPartner(args)
-	
+
 	elseif cmd == "AppealTrioPartner" then
 		SlashCmd_AppealTrioPartner(args)
-	
+
 	elseif cmd == "AppealDeath" then
 		SlashCmd_AppealDeath(args)
 
@@ -454,6 +593,17 @@ local function SlashHandler(msg, editbox)
 
 	elseif cmd == "ShowAppeals" then
 		SlashCmd_ShowAppeals(args)
+
+	-- DEPRECATED
+
+	elseif cmd == "ExpectAchievementAppeal" then
+		SlashCmd_Deprecated()
+
+	elseif cmd == "AppealAchievement" then
+		SlashCmd_Deprecated()
+
+	elseif cmd == "SetRank" then
+		SlashCmd_Deprecated()
 
 	else
 		-- If not handled above, display some sort of help message

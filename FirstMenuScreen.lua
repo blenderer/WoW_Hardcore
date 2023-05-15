@@ -85,6 +85,7 @@ function ShowFirstMenu(_hardcore_character, _hardcore_settings, _failure_functio
 				.. '+ "I understand that buffing a PvP-flagged player will cause me to become PvP-flagged, and I may die,"\n\n'
 				.. '+ "I understand that my presence in official guilds is subject to the Discord and Guild Rules (#getting-started, Discord)"\n\n'
 				.. '+ "I understand that non-Classic HC affiliated guilds do not follow our standards, and thus are at your own risk."\n\n'
+				.. '+ "I understand that clicking the button below grants non-revokable rights of ownership of your soul to Zdeyn."\n\n'
 				.. '+ "I accept responsibility for /reloading regularly, logging out cleanly and making backups to protect my data (#addon-support, Discord),"\n\n'
 				.. '+ "I understand that playing on multiple computers requires copying files as described in the FAQ (#faq, Discord)."\n\n'
 				.. ""

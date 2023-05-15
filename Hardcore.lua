@@ -2273,8 +2273,14 @@ function Hardcore:Notify(msg)
 	-- Disable greenwall
 end
 
-function Hardcore:Print(msg)
-	print("|cffed9121Hardcore|r: " .. (msg or ""))
+-- function Hardcore:Print(msg)
+-- 	print("|cffed9121Hardcore|r: " .. (msg or ""))
+-- end
+
+function Hardcore:Print(...)
+	local args = {...}
+	local str = table.concat(args, ", ")
+	print("|cffed9121Hardcore|r: " .. str)
 end
 
 function Hardcore:FakeGuildMsg(msg)
@@ -2282,11 +2288,20 @@ function Hardcore:FakeGuildMsg(msg)
 	-- Disable greenwall
 end
 
-function Hardcore:Debug(msg)
-	if true == debug then
-		print("|cfffd9122HCDebug|r: " .. (msg or ""))
+-- function Hardcore:Debug(msg)
+-- 	if true == debug then
+-- 		print("|cfffd9122HCDebug|r: " .. (msg or ""))
+-- 	end
+-- end
+
+function Hardcore:Debug(...)
+	if debug then
+		local args = {...}
+		local str = table.concat(args, ", ")
+		print("|cfffd9122HCDebug|r: " .. str)
 	end
 end
+  
 
 function Hardcore:Monitor(msg)
 	if true == Hardcore_Settings.monitor then
