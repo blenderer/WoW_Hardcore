@@ -23,22 +23,22 @@ local function extract_arguments(args)
 end
 
 local function short_crypto_hash(str)
-	Hardcore:Debug("short_crypto_hash:", str)
+	-- Hardcore:Debug("short_crypto_hash:", str)
 	local hash = 5381
 	for i = 1, #str do
 		hash = hash * 33 + str:byte( i )
 		Hardcore:Debug("sch: ", i, str:byte( i ), hash)
 	end
 
-	Hardcore:Debug("short_crypto_hash:", "DONE", hash)
+	-- Hardcore:Debug("short_crypto_hash:", "DONE", hash)
 	return hash
 end
 
 local function get_short_code(suffix)
 	-- print debug information using Hardcore:Debug  2.2944241830353e+14 
-	Hardcore:Debug("get_short_code:", suffix)
+	-- Hardcore:Debug("get_short_code:", suffix)
 	local str = UnitName("player"):sub(1,5) .. UnitLevel("player") .. tostring(suffix)
-	Hardcore:Debug("get_short_code:", str)
+	-- Hardcore:Debug("get_short_code:", str)
 	return short_crypto_hash(str)
 end
 
@@ -90,8 +90,7 @@ local function SlashCmd_AppealAchievementCode(args)
 	local calculated_code = get_short_code(achievement_id) -- number
 	local code_as_number = tonumber(code) -- number
 
-	Hardcore:Debug("Achievement: Given code " .. code .. ", which as a number is " .. code_as_number)
-
+	-- Hardcore:Debug("Achievement: Given code " .. code .. ", which as a number is " .. code_as_number)
 
 	---@diagnostic disable-next-line: undefined-field
 	if _G.achievements[_G.id_a[achievement_id]] == nil then
@@ -101,12 +100,12 @@ local function SlashCmd_AppealAchievementCode(args)
 	end
 
 	local achievement = _G.achievements[_G.id_a[achievement_id]]
-	Hardcore:Debug("FOO calculated_code: " .. calculated_code .. " given " .. code_as_number)
+	-- Hardcore:Debug("FOO calculated_code: " .. calculated_code .. " given " .. code_as_number)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
 		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
-		Hardcore:Debug("Expected:" .. calculated_code)
+		-- Hardcore:Debug("Expected:" .. calculated_code)
 		return
 	end
 
@@ -152,7 +151,6 @@ local function SlashCmd_AppealAchievementCode(args)
 
 	local dialog = StaticPopup_Show("ConfirmAchievementAppeal")
 
-
 end
 
 local function SlashCmd_AppealPassiveAchievementCode(args)
@@ -174,8 +172,6 @@ local function SlashCmd_AppealPassiveAchievementCode(args)
 	local calculated_code = get_short_code(achievement_id) -- number
 	local code_as_number = tonumber(code) -- number
 
-	
-
 	---@diagnostic disable-next-line: undefined-field
 	if _G.passive_achievements[_G.id_pa[achievement_id]] == nil then
 		-- achievement id is invalid, bail
@@ -184,7 +180,7 @@ local function SlashCmd_AppealPassiveAchievementCode(args)
 	end
 
 	local achievement = _G.passive_achievements[_G.id_pa[achievement_id]]
-	Hardcore:Debug("BAR calculated_code: " .. calculated_code .. " given " .. code_as_number)
+	-- Hardcore:Debug("BAR calculated_code: " .. calculated_code .. " given " .. code_as_number)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
@@ -225,13 +221,13 @@ local function SlashCmd_AppealTradePartners(args)
 	local calculated_code = get_short_code("-1") -- number
 	local code_as_number = tonumber(code) -- number
 
-	Hardcore:Debug("Trade Partner: Given code " .. code .. ", which as a number is " .. code_as_number)
-	Hardcore:Debug("calculated_code: " .. calculated_code)
+	-- Hardcore:Debug("Trade Partner: Given code " .. code .. ", which as a number is " .. code_as_number)
+	-- Hardcore:Debug("calculated_code: " .. calculated_code)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
 		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
-		Hardcore:Debug("Expected:" .. calculated_code)
+		-- Hardcore:Debug("Expected:" .. calculated_code)
 		return
 	end
 
@@ -258,13 +254,13 @@ local function SlashCmd_AppealDuoTrio(args)
 	local calculated_code = get_short_code("-1") -- number
 	local code_as_number = tonumber(code) -- number
 
-	Hardcore:Debug("Duo/Trio Appeal: Given code " .. code .. ", which as a number is " .. code_as_number)
-	Hardcore:Debug("calculated_code: " .. calculated_code)
+	-- Hardcore:Debug("Duo/Trio Appeal: Given code " .. code .. ", which as a number is " .. code_as_number)
+	-- Hardcore:Debug("calculated_code: " .. calculated_code)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
 		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
-		Hardcore:Debug("Expected:" .. calculated_code)
+		-- Hardcore:Debug("Expected:" .. calculated_code)
 		return
 	end
 
@@ -303,13 +299,13 @@ local function SlashCmd_AppealDuoPartner(args)
 	local calculated_code = get_short_code(partner:sub(1,3)) -- number
 	local code_as_number = tonumber(code) -- number
 
-	Hardcore:Debug("DuoPartner: Given code " .. code .. ", which as a number is " .. code_as_number)
-	Hardcore:Debug("calculated_code: " .. calculated_code)
+	-- Hardcore:Debug("DuoPartner: Given code " .. code .. ", which as a number is " .. code_as_number)
+	-- Hardcore:Debug("calculated_code: " .. calculated_code)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
 		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
-		Hardcore:Debug("Expected:" .. calculated_code)
+		-- Hardcore:Debug("Expected:" .. calculated_code)
 		return
 	end
 
@@ -342,13 +338,13 @@ local function SlashCmd_AppealTrioPartner(args)
 	local calculated_code = get_short_code(partner:sub(1,3)) -- number
 	local code_as_number = tonumber(code) -- number
 
-	Hardcore:Debug("TrioPartner: Given code " .. code .. ", which as a number is " .. code_as_number)
-	Hardcore:Debug("calculated_code: " .. calculated_code)
+	-- Hardcore:Debug("TrioPartner: Given code " .. code .. ", which as a number is " .. code_as_number)
+	-- Hardcore:Debug("calculated_code: " .. calculated_code)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
 		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
-		Hardcore:Debug("Expected:" .. calculated_code)
+		-- Hardcore:Debug("Expected:" .. calculated_code)
 		return
 	end
 
@@ -447,13 +443,13 @@ local function SlashCmd_AppealDeath( args )
 	local calculated_code = get_long_code( death_date )
 	local code_as_number = tonumber( code )
 
-	Hardcore:Debug("Death: Given code " .. code .. ", which as a number is " .. code_as_number)
-	Hardcore:Debug("calculated_code: " .. calculated_code)
+	-- Hardcore:Debug("Death: Given code " .. code .. ", which as a number is " .. code_as_number)
+	-- Hardcore:Debug("calculated_code: " .. calculated_code)
 
 	if calculated_code ~= code_as_number then
 		-- code is incorrect, bail
 		Hardcore:Print("Incorrect code. Double-check with your moderator/technician: " .. code_as_number)
-		Hardcore:Debug("Expected:" .. calculated_code)
+		-- Hardcore:Debug("Expected:" .. calculated_code)
 		return
 	end
 
