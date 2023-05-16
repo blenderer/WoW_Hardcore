@@ -153,7 +153,7 @@ end
 local function Start(a)
 	local item_id = GetInventoryItemID("player", a)
 	for index, value in ipairs(Combine) do
-		if string.match(value, item_id) then
+		if value == item_id then
 			GameTooltip:Hide() --prevents a hung empty tooltip window
 			return true
 		end
@@ -196,7 +196,7 @@ self_made_achievement:SetScript("OnEvent", function(self, event, ...)
 			local item_id = GetInventoryItemID("player", 0)
 			local item_name, _, _, _, _, _, item_subtype = GetItemInfo(item_id)
 			for index, value in ipairs(Combine) do
-				if string.match(value, item_id) then
+				if value == item_id then
 					return
 				end
 			end
