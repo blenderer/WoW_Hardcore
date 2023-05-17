@@ -43,6 +43,8 @@ local Combine = {
 	1395,
 	1396,
 	2092,
+	2101,		-- Light quiver (starting equipment)
+	2102,		-- Small ammo pouch (starting equipment)
 	2105,
 	2361,
 	2362,
@@ -76,6 +78,13 @@ local Combine = {
 	6139,
 	6140,
 	6144,
+	6256,		-- Fishing Pole
+	6365,		-- Strong Fishing pole
+	6366,		-- Darkwood Fishing pole
+	6367,		-- Big Iron Fishing pole
+	12225,		-- Blump Family Fishing pole
+	19970,		-- Arcanite Fishing pole
+	19002,		-- Nat Pagle's Extreme Angler
 	12282,
 	20891,
 	20892,
