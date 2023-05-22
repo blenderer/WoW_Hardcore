@@ -190,6 +190,8 @@ local COMM_COMMANDS = {
 	"DTPULSE", -- 15 dungeon tracker active pulse; if this changes, also change in Dungeons.lua / DTSendPulse!
 	"REQUEST_RECOVERY_TIME", -- 16 Used to request recovery segments if detected DC
 	"REQUEST_RECOVERY_TIME_ACK", -- 17 Recovery request ack
+	"SURVEY_REQ",	-- 18 Request for survey info (from GM)
+	"SURVEY_ACK"	-- 19 Answer to survey info (to GM)
 }
 local COMM_SPAM_THRESHOLD = { -- msgs received within durations (s) are flagged as spam
 	PULSE = 3,
@@ -982,6 +984,9 @@ function Hardcore:PLAYER_LOGIN()
 
 	-- initiate dungeon tracking (pass Hardcore.lua locals needed for communication)
 	DungeonTrackerInitiate(COMM_NAME, COMM_COMMANDS[15], COMM_COMMAND_DELIM, COMM_FIELD_DELIM)
+
+	-- initiate survey module (pass Hardcore.lua locals needed for communication)
+	SurveyInitiate(COMM_NAME, COMM_COMMANDS[18], COMM_COMMANDS[19], COMM_COMMAND_DELIM, COMM_FIELD_DELIM)
 
 	-- check players version against highest version
 	local FULL_PLAYER_NAME = Hardcore_GetPlayerPlusRealmName()
@@ -2121,6 +2126,14 @@ function Hardcore:CHAT_MSG_ADDON(prefix, datastr, scope, sender)
 		end
 		if command == COMM_COMMANDS[15] then
 			DungeonTrackerReceivePulse(data, sender)
+			return
+		end
+		if command == COMM_COMMANDS[18] then
+			SurveyReceiveRequest(data, sender)
+			return
+		end
+		if command == COMM_COMMANDS[19] then
+			SurveyReceiveResponse(data, sender)
 			return
 		end
 		if DEPRECATED_COMMANDS[command] or alert_msg_time[command] == nil then

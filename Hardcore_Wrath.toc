@@ -155,6 +155,7 @@ InspectStatusScreen.lua
 AchievementTab.lua
 FirstMenuScreen.lua
 Dungeons.lua
+Survey.lua
 MainMenu.lua
 TextureUtils.lua
 TextureInfo.lua
