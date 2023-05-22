@@ -49,48 +49,71 @@ end
 
 function SurveyReceiveRequest(data, sender)
 
+    -- Fool proofing
+    if Hardcore_Character == nil then
+        return
+    end
+
     -- Check if this came from the GM
     if guild_master == "" then
         guild_master = SurveyDetermineGuildMaster()
     end
     if sender ~= guild_master then
-        Hardcore:Print( "Received a survey request from someone (" .. sender .. ") who is not the GM" )
+        Hardcore:Debug( "Received a survey request from someone (" .. sender .. ") who is not the GM" )
         return
     end
 
     -- Unpack the request
     local id, wait_time, variable = string.split(COMM_FIELD_DELIM, data)
 	-- Handle malformed requests
-	if id == nil or wait_time == nil or variable == nil then
+	if id == nil or (tonumber( id ) == nil) or wait_time == nil or (tonumber( wait_time ) == nil) or variable == nil or variable == "" then
+        Hardcore:Debug( "Received a malformed survey request" )
 		return
 	end
-    local wait_time_max = min( 0, tonumber( wait_time ) )         -- Prevent abuse
-    if Hardcore_Character == nil or Hardcore_Character[ variable ] == nil then
-        Hardcore:Print( "Received a survey request for unknown variable " .. variable )
-        return
-    end
+    local wait_time_max = max( 5, tonumber( wait_time ) )
     local survey_id = tonumber( id )
     if survey_id <= 0 then
         return
     end
 
+    -- Look up the variable
+    local value_to_send
+    if string.sub( variable, 1, 1 ) == "#" then
+        variable = string.sub( variable, 2)
+        if type( Hardcore_Character[ variable ] ) == "table" then
+            value_to_send = #Hardcore_Character[ variable ]
+        else
+            Hardcore:Debug( "Received a survey request for a variable " .. variable .. " that is not a table, but a " .. type( Hardcore_Character[ variable ] ) )
+            return
+        end
+    else
+        if variable == "guid" then
+            value_to_send = "(secret)"
+        else
+            value_to_send = Hardcore_Character[ variable ]
+        end
+    end
+    if value_to_send == nil then
+        Hardcore:Debug( "Received a survey request for unknown variable " .. variable )
+        return
+    end
+
     -- Now generate the reply
     math.random(); math.random();
-    local my_wait_time = math.floor( math.random(5, 5+wait_time_max))
+    local my_wait_time = math.floor( math.random(wait_time_max))
+    Hardcore:Debug( "Waiting for " .. my_wait_time .. " seconds")
 
     C_Timer.After(my_wait_time, function()
         local mytag = "(unknown)"
         if Hardcore_Settings.hardcore_player_name ~= nil and Hardcore_Settings.hardcore_player_name ~= "" then
             mytag = Hardcore_Settings.hardcore_player_name
         end
-        local comm_msg = SURVEY_ACK_CMD .. COMM_COMMAND_DELIM .. survey_id .. COMM_FIELD_DELIM .. mytag .. COMM_FIELD_DELIM .. Hardcore_Character[ variable ]
+        local comm_msg = SURVEY_ACK_CMD .. COMM_COMMAND_DELIM .. survey_id .. COMM_FIELD_DELIM .. mytag .. COMM_FIELD_DELIM .. value_to_send
         CTL:SendAddonMessage("BULK", COMM_NAME, comm_msg, "WHISPER", sender)
-        Hardcore:Print("Sending out reply:" .. comm_msg)
+        Hardcore:Debug("Sending out reply:" .. comm_msg)
     end)
 
 end
-
-
 
 
 -- SurveyReceiveResponse( args )
@@ -169,8 +192,8 @@ function SurveyHandleCommand( args )
 			var = substring
 		end
 	end
-	if max_wait == nil then
-		Hardcore:Print("Wrong syntax: Missing <number> argument")
+	if max_wait == nil or tonumber( max_wait ) == nil then
+		Hardcore:Print("Wrong syntax: Missing or ill-formed <number> argument")
 		Hardcore:Print(usage)
 		return
 	end
