@@ -583,6 +583,9 @@ local function SlashHandler(msg, editbox)
 	elseif cmd == "AppealDeath" then
 		SlashCmd_AppealDeath(args)
 
+	elseif cmd == "Survey" then
+		SurveyHandleCommand(args)
+
 	-- DEBUG
 	elseif cmd == "ShowDeaths" then
 		SlashCmd_ShowDeaths(args)
