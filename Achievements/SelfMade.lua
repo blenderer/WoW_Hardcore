@@ -158,16 +158,33 @@ function self_made_achievement:Unregister()
 	self:UnregisterEvent("ITEM_UNLOCKED")
 end
 
+-- Efficiency improvement -- don't go through a long list, but use a hash table
+local combine_hash = nil
+local function GenerateCombineHash()
+	if combine_hash == nil then
+		combine_hash = {}
+		for _, value in ipairs(Combine) do
+			combine_hash[ value ] = 1
+		end
+	end
+end
+local function IsWhitelisted( item_id )
+	GenerateCombineHash()
+	if combine_hash[ item_id ] ~= nil then
+		return true
+	else
+		return false
+	end
+end
+
+
 -- Check Starting gear function
 local function Start(a)
 	local item_id = GetInventoryItemID("player", a)
-	for index, value in ipairs(Combine) do
-		if value == item_id then
-			GameTooltip:Hide() --prevents a hung empty tooltip window
-			return true
-		end
-	end
 	GameTooltip:Hide() --prevents a hung empty tooltip window
+	if IsWhitelisted( item_id ) then
+		return true
+	end
 	return false
 end
 
@@ -204,10 +221,8 @@ self_made_achievement:SetScript("OnEvent", function(self, event, ...)
 		if GetInventoryItemID("player", 0) ~= nil then
 			local item_id = GetInventoryItemID("player", 0)
 			local item_name, _, _, _, _, _, item_subtype = GetItemInfo(item_id)
-			for index, value in ipairs(Combine) do
-				if value == item_id then
-					return
-				end
+			if IsWhitelisted( item_id ) then
+				return
 			end
 			Hardcore:Print("Equipped ammo " .. item_name .. " which isn't self created.")
 			self_made_achievement.fail_function_executor.Fail(self_made_achievement.name)
