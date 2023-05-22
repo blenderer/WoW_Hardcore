@@ -31,7 +31,7 @@ end
 
 local function SurveyGetLongName()
 
-    local short_name, long_name
+    local short_name, realm_name
 
     short_name, realm_name = UnitFullName("player")
     return short_name .. "-" .. realm_name
