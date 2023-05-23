@@ -358,6 +358,23 @@ local function SlashCmd_AppealTrioPartner(args)
 
 end
 
+local function SlashCmd_SetHCTag(args)
+	local tag = nil
+	tag, _ = extract_arguments(args)
+
+	-- reject nil case
+	if tag == nil then
+		-- tag is missing, bail
+		Hardcore:Print("Wrong syntax: Missing tag")
+		return
+	end
+
+	-- tag is a string at this point
+
+	Hardcore_Character.hardcore_player_name = tag
+	Hardcore:Print("Set HC Tag to " .. tag .. ".  Reload as soon as it is convenient to save.")
+end
+
 local function SlashCmd_ShowDeaths( args )
 
 	-- DEBUG CODE:
@@ -582,6 +599,9 @@ local function SlashHandler(msg, editbox)
 
 	elseif cmd == "AppealDeath" then
 		SlashCmd_AppealDeath(args)
+
+	elseif cmd == "setHCTag" then
+		SlashCmd_SetHCTag(args)
 
 	elseif cmd == "Survey" then
 		SurveyHandleCommand(args)
